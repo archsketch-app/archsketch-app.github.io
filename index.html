@@ -1387,6 +1387,16 @@ function postProcessSequenceSVG(container) {
     const svg = container.querySelector('svg');
     if (!svg) return;
 
+    // Expand viewBox to prevent edge elements (e.g. autonumber circles) from clipping
+    const pad = 24;
+    const vb = svg.getAttribute('viewBox');
+    if (vb) {
+        const [x, y, w, h] = vb.split(' ').map(Number);
+        svg.setAttribute('viewBox', `${x - pad} ${y - pad} ${w + pad * 2} ${h + pad * 2}`);
+        svg.setAttribute('width',  String(w + pad * 2));
+        svg.setAttribute('height', String(h + pad * 2));
+    }
+
     let defs = svg.querySelector('defs');
     if (!defs) {
         defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
