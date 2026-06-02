@@ -1479,26 +1479,40 @@ function postProcessSequenceSVG(container) {
     });
     svg.querySelectorAll('.noteText, text.noteText').forEach(t => { t.style.fill = '#1a202c'; });
 
-    // Label boxes: loop/par/critical = black; alt/opt/break = light-red
+    // Block color scheme — matches SEQ_CUSTOM renderer
+    const BLOCK_CLR = {
+        alt:      { bg: 'rgba(254,178,178,.18)', bd: '#E53E3E', tx: '#9B2C2C', lb: '#FFF5F5' },
+        opt:      { bg: 'rgba(254,178,178,.18)', bd: '#E53E3E', tx: '#9B2C2C', lb: '#FFF5F5' },
+        break:    { bg: 'rgba(254,178,178,.18)', bd: '#E53E3E', tx: '#9B2C2C', lb: '#FFF5F5' },
+        loop:     { bg: 'rgba(66,153,225,.10)',  bd: '#4299E1', tx: '#2B6CB0', lb: '#EBF8FF' },
+        critical: { bg: 'rgba(66,153,225,.10)',  bd: '#4299E1', tx: '#2B6CB0', lb: '#EBF8FF' },
+        par:      { bg: 'rgba(56,161,105,.10)',  bd: '#38A169', tx: '#276749', lb: '#F0FFF4' },
+    };
+    const DEFAULT_CLR = { bg: 'rgba(113,128,150,.10)', bd: '#718096', tx: '#4a5568', lb: '#F7FAFC' };
+
+    function blockClr(labelText) {
+        const key = (labelText || '').trim().toLowerCase().split(/\s/)[0];
+        return BLOCK_CLR[key] || DEFAULT_CLR;
+    }
+
+    // Label boxes — type-aware light colors
     svg.querySelectorAll('rect.labelBox').forEach(r => {
         const g      = r.closest('g');
         const textEl = g ? g.querySelector('text') : null;
-        const label  = (textEl ? textEl.textContent : '').trim().toLowerCase();
-        if (label.startsWith('alt') || label.startsWith('opt') || label.startsWith('break')) {
-            r.style.fill   = '#FEB2B2';
-            r.style.stroke = '#E53E3E';
-            if (textEl) textEl.style.fill = '#9B2C2C';
-        } else {
-            r.style.fill   = '#1a202c';
-            r.style.stroke = '#1a202c';
-            if (textEl) textEl.style.fill = '#ffffff';
-        }
+        const clr    = blockClr(textEl ? textEl.textContent : '');
+        r.style.fill        = clr.lb;
+        r.style.stroke      = clr.bd;
+        r.style.strokeWidth = '1.5px';
+        if (textEl) { textEl.style.fill = clr.tx; textEl.style.fontWeight = '600'; }
     });
 
-    // Partitions (rect...end) — grey dashed border
+    // Partition boxes (alt/loop/par/opt...end) — type-aware dashed border
     svg.querySelectorAll('rect.rect').forEach(r => {
-        r.style.fill            = 'rgba(113,128,150,0.10)';
-        r.style.stroke          = '#718096';
+        const g      = r.closest('g');
+        const textEl = g ? g.querySelector('text') : null;
+        const clr    = blockClr(textEl ? textEl.textContent : '');
+        r.style.fill            = clr.bg;
+        r.style.stroke          = clr.bd;
         r.style.strokeWidth     = '2px';
         r.style.strokeDasharray = '10,5';
     });
@@ -1693,10 +1707,10 @@ const SEQ_CUSTOM = (function () {
         lifeline: '#a0aec0',
         fwd: '#1a202c', bwd: '#319795',
         note_bg: '#D69E2E', note_bd: '#975A16', note_tx: '#1a202c', note_fold: '#b7791f',
-        alt: { bg: 'rgba(254,178,178,.18)', bd: '#E53E3E', tx: '#9B2C2C' },
-        loop: { bg: 'rgba(66,153,225,.10)', bd: '#4299E1', tx: '#2B6CB0' },
-        par: { bg: 'rgba(56,161,105,.10)', bd: '#38A169', tx: '#276749' },
-        blk: { bg: 'rgba(113,128,150,.10)', bd: '#718096', tx: '#4a5568' },
+        alt: { bg: 'rgba(254,178,178,.18)', bd: '#E53E3E', tx: '#9B2C2C', lb: '#FFF5F5' },
+        loop: { bg: 'rgba(66,153,225,.10)', bd: '#4299E1', tx: '#2B6CB0', lb: '#EBF8FF' },
+        par: { bg: 'rgba(56,161,105,.10)', bd: '#38A169', tx: '#276749', lb: '#F0FFF4' },
+        blk: { bg: 'rgba(113,128,150,.10)', bd: '#718096', tx: '#4a5568', lb: '#F7FAFC' },
         act_bg: 'rgba(66,153,225,.3)', act_bd: '#4299E1',
         title: '#1a202c',
     };
@@ -1902,8 +1916,8 @@ const SEQ_CUSTOM = (function () {
                 bodies.push(noteSVG(nx, ay + C.note_vpad, nw, C.note_h, C.note_fold, el.text));
             } else if (el.kind === 'block') {
                 const bc = blockColors(el.type);
-                bodies.push(`<rect x="0" y="${ay}" width="${W}" height="${C.block_lh}" fill="${bc.bd}" rx="2"/>`);
-                bodies.push(`<text x="8" y="${ay+C.block_lh-5}" font-family="${C.font}" font-size="11" font-weight="bold" fill="#fff">${esc(el.type)}${el.label?' ['+el.label+']':''}</text>`);
+                bodies.push(`<rect x="0" y="${ay}" width="${W}" height="${C.block_lh}" fill="${bc.lb}" stroke="${bc.bd}" stroke-width="1.5" rx="2"/>`);
+                bodies.push(`<text x="8" y="${ay+C.block_lh-5}" font-family="${C.font}" font-size="11" font-weight="bold" fill="${bc.tx}">${esc(el.type)}${el.label?' ['+el.label+']':''}</text>`);
             } else if (el.kind === 'else' || el.kind === 'and') {
                 bodies.push(`<line x1="0" y1="${ay}" x2="${W}" y2="${ay}" stroke="${CLR.blk.bd}" stroke-dasharray="4,3" stroke-width="1"/>`);
                 bodies.push(`<text x="8" y="${ay+14}" font-family="${C.font}" font-size="11" fill="${CLR.blk.tx}">${esc(el.kind)}${el.label?' ['+el.label+']':''}</text>`);
